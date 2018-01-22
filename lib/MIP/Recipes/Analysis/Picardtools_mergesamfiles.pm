@@ -529,6 +529,10 @@ q{## Renaming sample instead of merge to streamline handling of filenames downst
     return;
 }
 
+sub analysis_picardtools_mergesamfiles_cancer {
+    return;
+}
+
 sub analysis_picardtools_mergesamfiles_rio {
 
 ## Function : Merges all bam files using Picardtools mergesamfiles within each sampleid and files generated previously (option if provided with '-picardtools_mergesamfiles_previous_bams'). The merged files have to be sorted before attempting to merge.
