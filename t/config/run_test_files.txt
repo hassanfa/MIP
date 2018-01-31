@@ -122,6 +122,7 @@ list_delete_contig_elements.t
 list_delete_male_contig.t
 list_delete_non_wes_contig.t
 manta_config.t
+manta_config_cancer.t
 manta_workflow.t
 mip_vcfparser.t
 multiqc.t

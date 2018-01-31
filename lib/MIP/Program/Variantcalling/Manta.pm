@@ -26,10 +26,10 @@ BEGIN {
     use base qw{ Exporter };
 
     # Set the version for version checking
-    our $VERSION = 1.01;
+    our $VERSION = 1.02;
 
     # Functions and variables which can be optionally exported
-    our @EXPORT_OK = qw{ manta_config manta_workflow };
+    our @EXPORT_OK = qw{ manta_config manta_config_cancer manta_workflow };
 
 }
 
@@ -42,14 +42,13 @@ sub manta_config {
 
     ## Function : Perl wrapper for writing Manta config recipe to $FILEHANDLE or return commands array. Based on Manta 1.1.0.
     ## Returns  : "@commands"
-    ## Arguments: $infile_paths_ref, $referencefile_path, $outdirectory_path, $stderrfile_path, $stderrfile_path_append, $FILEHANDLE, $exome_analysis
+    ## Arguments: $exome_analysis         => Set options for WES input: turn off depth filters
+    ##          : $FILEHANDLE             => Filehandle to write to
     ##          : $infile_paths_ref       => Infile paths {REF}
-    ##          : $referencefile_path     => Reference sequence file
     ##          : $outdirectory_path      => Outfile path
+    ##          : $referencefile_path     => Reference sequence file
     ##          : $stderrfile_path        => Stderrfile path
     ##          : $stderrfile_path_append => Append stderr info to file path
-    ##          : $FILEHANDLE             => Filehandle to write to
-    ##          : $exome_analysis         => Set options for WES input: turn off depth filters
 
     my ($arg_href) = @_;
 
@@ -57,37 +56,47 @@ sub manta_config {
     my $exome_analysis;
 
     ## Flatten argument(s)
+    my $FILEHANDLE;
     my $infile_paths_ref;
-    my $referencefile_path;
     my $outdirectory_path;
+    my $referencefile_path;
     my $stderrfile_path;
     my $stderrfile_path_append;
-    my $FILEHANDLE;
 
     my $tmpl = {
+        exome_analysis => {
+            default     => 0,
+            allow       => [ undef, 0, 1 ],
+            store       => \$exome_analysis,
+            strict_type => 1,
+        },
+        FILEHANDLE => {
+            store => \$FILEHANDLE
+        },
         infile_paths_ref => {
             required    => 1,
             defined     => 1,
             default     => [],
+            store       => \$infile_paths_ref,
             strict_type => 1,
-            store       => \$infile_paths_ref
         },
         referencefile_path => {
             required    => 1,
             defined     => 1,
+            store       => \$referencefile_path,
             strict_type => 1,
-            store       => \$referencefile_path
         },
-        outdirectory_path => { strict_type => 1, store => \$outdirectory_path },
-        stderrfile_path   => { strict_type => 1, store => \$stderrfile_path },
-        stderrfile_path_append =>
-          { strict_type => 1, store => \$stderrfile_path_append },
-        FILEHANDLE     => { store => \$FILEHANDLE },
-        exome_analysis => {
-            default     => 0,
-            allow       => [ undef, 0, 1 ],
+        outdirectory_path => {
+            store       => \$outdirectory_path,
             strict_type => 1,
-            store       => \$exome_analysis
+        },
+        stderrfile_path => {
+            store       => \$stderrfile_path,
+            strict_type => 1,
+        },
+        stderrfile_path_append => {
+            store       => \$stderrfile_path_append,
+            strict_type => 1,
         },
     };
 
@@ -135,18 +144,133 @@ sub manta_config {
     return @commands;
 }
 
+sub manta_config_cancer {
+
+    ## manta_config
+
+    ## Function : Perl wrapper for writing Manta config recipe to $FILEHANDLE or return commands array. Based on Manta 1.1.0.
+    ## Returns  : "@commands"
+    ## Arguments: $exome_analysis         => Set options for WES input: turn off depth filters
+    ##          : $FILEHANDLE             => Filehandle to write to
+    ##          : $infile_paths_normal    => Infile path for normal bam {REF}
+    ##          : $infile_paths_tumor     => Infile path for tumor bam {REF}
+    ##          : $outdirectory_path      => Outfile path
+    ##          : $referencefile_path     => Reference sequence file
+    ##          : $stderrfile_path        => Stderrfile path
+    ##          : $stderrfile_path_append => Append stderr info to file path
+
+    my ($arg_href) = @_;
+
+    ## Default(s)
+    my $exome_analysis;
+
+    ## Flatten argument(s)
+    my $FILEHANDLE;
+    my $infile_paths_normal;
+    my $infile_paths_tumor;
+    my $outdirectory_path;
+    my $referencefile_path;
+    my $stderrfile_path;
+    my $stderrfile_path_append;
+
+    my $tmpl = {
+        exome_analysis => {
+            default     => 0,
+            allow       => [ undef, 0, 1 ],
+            store       => \$exome_analysis,
+            strict_type => 1,
+        },
+        FILEHANDLE => {
+            store => \$FILEHANDLE,
+        },
+        infile_paths_normal => {
+            defined     => 1,
+            store       => \$infile_paths_normal,
+            strict_type => 1,
+        },
+        infile_paths_tumor => {
+            required    => 1,
+            defined     => 1,
+            store       => \$infile_paths_tumor,
+            strict_type => 1,
+        },
+        referencefile_path => {
+            required    => 1,
+            defined     => 1,
+            store       => \$referencefile_path,
+            strict_type => 1,
+        },
+        outdirectory_path => {
+            store       => \$outdirectory_path,
+            strict_type => 1,
+        },
+        stderrfile_path => {
+            store       => \$stderrfile_path,
+            strict_type => 1,
+        },
+        stderrfile_path_append => {
+            store       => \$stderrfile_path_append,
+            strict_type => 1,
+        },
+    };
+
+    check( $tmpl, $arg_href, 1 ) or croak q{Could not parse arguments!};
+
+    # Stores commands depending on input parameters
+    my @commands = q{configManta.py};
+
+    #Reference sequence file
+    push @commands, q{--referenceFasta} . $SPACE . $referencefile_path;
+
+    if ($exome_analysis) {
+
+        push @commands, q{--exome};
+    }
+
+    ## Infile normal
+    if ($infile_paths_normal) {
+
+        push @commands, q{--normalBam} . $SPACE . $infile_paths_normal;
+    }
+
+    ## Infile tumor
+    push @commands, q{--tumorBam} . $SPACE . $infile_paths_tumor;
+
+    if ($outdirectory_path) {
+
+        push @commands, q{--runDir} . $SPACE . $outdirectory_path;
+    }
+
+    push @commands,
+      unix_standard_streams(
+        {
+            stderrfile_path        => $stderrfile_path,
+            stderrfile_path_append => $stderrfile_path_append,
+        }
+      );
+
+    unix_write_to_file(
+        {
+            commands_ref => \@commands,
+            separator    => $SPACE,
+            FILEHANDLE   => $FILEHANDLE,
+        }
+    );
+
+    return @commands;
+}
+
 sub manta_workflow {
 
     ## manta_workflow
 
     ## Function : Perl wrapper for writing Manta workflow recipe to $FILEHANDLE or return commands array. Based on Manta 1.1.0.
     ## Returns  : "@commands"
-    ## Arguments: $outdirectory_path, $stderrfile_path, $stderrfile_path_append, $outdirectory_path, $FILEHANDLE, $mode
+    ## Arguments: $FILEHANDLE             => Filehandle to write to
+    ##          : $mode                   => Mode of parallel
     ##          : $outdirectory_path      => Outfile path
     ##          : $stderrfile_path        => Stderrfile path
     ##          : $stderrfile_path_append => Append stderr info to file path
-    ##          : $FILEHANDLE             => Filehandle to write to
-    ##          : $mode                   => Mode of parallel
 
     my ($arg_href) = @_;
 
@@ -154,27 +278,34 @@ sub manta_workflow {
     my $mode;
 
     ## Flatten argument(s)
+    my $FILEHANDLE;
     my $outdirectory_path;
     my $stderrfile_path;
     my $stderrfile_path_append;
-    my $FILEHANDLE;
 
     my $tmpl = {
+        FILEHANDLE => {
+            store => \$FILEHANDLE,
+        },
+        mode => {
+            default     => q{local},
+            allow       => [qw{ undef local sge }],
+            store       => \$mode,
+            strict_type => 1,
+        },
         outdirectory_path => {
             required    => 1,
             defined     => 1,
+            store       => \$outdirectory_path,
             strict_type => 1,
-            store       => \$outdirectory_path
         },
-        stderrfile_path => { strict_type => 1, store => \$stderrfile_path },
-        stderrfile_path_append =>
-          { strict_type => 1, store => \$stderrfile_path_append },
-        FILEHANDLE => { store => \$FILEHANDLE },
-        mode       => {
-            default     => q{local},
-            allow       => [qw{ undef local sge }],
+        stderrfile_path => {
+            store       => \$stderrfile_path,
             strict_type => 1,
-            store       => \$mode
+        },
+        stderrfile_path_append => {
+            store       => \$stderrfile_path_append,
+            strict_type => 1,
         },
     };
 
