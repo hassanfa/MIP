@@ -506,7 +506,8 @@ sub analysis_manta_cancer {
     use MIP::Processmanagement::Slurm_processes
       qw{ slurm_submit_job_sample_id_dependency_add_to_family };
     use MIP::Program::Compression::Gzip qw{ gzip };
-    use MIP::Program::Variantcalling::Manta qw{ manta_config_cancer manta_workflow };
+    use MIP::Program::Variantcalling::Manta
+      qw{ manta_config_cancer manta_workflow };
     use MIP::QC::Record qw{ add_program_outfile_to_sample_info };
     use MIP::Script::Setup_script qw{ setup_script };
     use MIP::Set::File qw{ set_file_suffix };
@@ -645,14 +646,34 @@ sub analysis_manta_cancer {
     my @file_paths = map { $file_path_prefix{$_} . $infile_suffix }
       @{ $active_parameter_href->{sample_ids} };
 
-    manta_config(
+    my @file_paths_normal =
+      map { $file_path_prefix{$_} . $infile_suffix } get_sample_info(
         {
-            exome_analysis     => $exome_analysis,
-            FILEHANDLE         => $FILEHANDLE,
-            infile_paths_normal   => get_family_pedigree({ sample_origin => "normal" }),
-            infile_paths_tumor   => get_family_pedigree({ sample_origin => "tumor" }),
-            outdirectory_path  => $temp_directory,
-            referencefile_path => $referencefile_path,
+            get_values_for_key          => q{sample_id},
+            pedigree_href               => \%pedigree,
+            sample_info_intersect_key   => q{sample_origin},
+            sample_info_intersect_value => q{normal},
+        }
+      );
+
+    my @file_paths_tumor =
+      map { $file_path_prefix{$_} . $infile_suffix } get_sample_info(
+        {
+            get_values_for_key          => q{sample_id},
+            pedigree_href               => \%pedigree,
+            sample_info_intersect_key   => q{sample_origin},
+            sample_info_intersect_value => q{tumor},
+        }
+      );
+
+    manta_config_cancer (
+        {
+            exome_analysis      => $exome_analysis,
+            FILEHANDLE          => $FILEHANDLE,
+            infile_paths_normal => @file_paths_normal,
+            infile_paths_tumor  => @file_paths_tumor,
+            outdirectory_path   => $temp_directory,
+            referencefile_path  => $referencefile_path,
         }
     );
     say {$FILEHANDLE} $NEWLINE;
